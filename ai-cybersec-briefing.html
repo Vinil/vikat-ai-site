@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why AI Cybersecurity Projects Stall — Vikat.AI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg-deep: #06090f;
+    --bg-card: #0c1220;
+    --bg-glass: rgba(12, 18, 32, 0.85);
+    --accent-cyan: #00e5ff;
+    --accent-red: #ff3d5a;
+    --accent-amber: #ffab00;
+    --accent-green: #00e676;
+    --accent-purple: #b388ff;
+    --text-primary: #e8ecf4;
+    --text-muted: #7a8ba8;
+    --text-dim: #3d4f6a;
+    --glow-cyan: 0 0 40px rgba(0,229,255,0.15);
+    --glow-red: 0 0 40px rgba(255,61,90,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* ── CANVAS ── */
+  .canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ── BG GRID ── */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridPulse 8s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ── FLOATING PARTICLES ── */
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    opacity: 0;
+    animation: particleFloat 12s ease-in-out infinite;
+  }
+  @keyframes particleFloat {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 0.3; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--text-dim);
+    z-index: 100;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+    transition: width 0.3s linear;
+  }
+
+  /* ── SCENE MARKERS ── */
+  .scene-markers {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.4s ease;
+  }
+  .marker.active {
+    background: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,0.5);
+    transform: scale(1.3);
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    position: absolute;
+    bottom: 32px;
+    right: 32px;
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+  }
+  .ctrl-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--text-dim);
+    background: var(--bg-glass);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+  .ctrl-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+  .ctrl-btn.playing { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+  /* ── SCENE CONTAINER ── */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+  }
+  .scene.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  /* ── SCENE TAG ── */
+  .scene-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    margin-bottom: 20px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease 0.3s;
+  }
+  .scene.active .scene-tag {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── HEADLINE ── */
+  .headline {
+    font-size: clamp(28px, 4.5vw, 64px);
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.1;
+    max-width: 900px;
+    margin-bottom: 24px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.7s ease 0.5s;
+  }
+  .scene.active .headline {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .hl-accent { color: var(--accent-cyan); }
+  .hl-red { color: var(--accent-red); }
+  .hl-amber { color: var(--accent-amber); }
+  .hl-green { color: var(--accent-green); }
+  .hl-purple { color: var(--accent-purple); }
+
+  /* ── SUBTEXT ── */
+  .subtext {
+    font-size: clamp(14px, 1.5vw, 20px);
+    font-weight: 300;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 700px;
+    line-height: 1.6;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease 0.7s;
+  }
+  .scene.active .subtext {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── BIG STAT ── */
+  .big-stat {
+    font-size: clamp(72px, 12vw, 160px);
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+  }
+  .scene.active .big-stat {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* ── STAT ROW ── */
+  .stat-row {
+    display: flex;
+    gap: 40px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 16px;
+    padding: 28px 32px;
+    text-align: center;
+    min-width: 180px;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.6s ease;
+  }
+  .scene.active .stat-card {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .scene.active .stat-card:nth-child(1) { transition-delay: 0.6s; }
+  .scene.active .stat-card:nth-child(2) { transition-delay: 0.8s; }
+  .scene.active .stat-card:nth-child(3) { transition-delay: 1.0s; }
+  .scene.active .stat-card:nth-child(4) { transition-delay: 1.2s; }
+
+  .stat-card .num {
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── BARRIER LIST ── */
+  .barrier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 28px;
+    width: 100%;
+    max-width: 720px;
+  }
+  .barrier-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.5s ease;
+  }
+  .scene.active .barrier-item:nth-child(1) { transition-delay: 0.5s; opacity: 1; transform: translateX(0); }
+  .scene.active .barrier-item:nth-child(2) { transition-delay: 0.7s; opacity: 1; transform: translateX(0); }
+  .scene.active .barrier-item:nth-child(3) { transition-delay: 0.9s; opacity: 1; transform: translateX(0); }
+  .scene.active .barrier-item:nth-child(4) { transition-delay: 1.1s; opacity: 1; transform: translateX(0); }
+  .scene.active .barrier-item:nth-child(5) { transition-delay: 1.3s; opacity: 1; transform: translateX(0); }
+
+  .barrier-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .barrier-bar-track {
+    flex: 1;
+    height: 40px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .barrier-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .scene.active .barrier-bar-fill { /* widths set inline */ }
+  .barrier-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: auto;
+    padding-left: 12px;
+  }
+
+  /* ── BAR CHART (horizontal) ── */
+  .h-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    max-width: 640px;
+    margin-top: 32px;
+  }
+  .h-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+  .scene.active .h-chart-row:nth-child(1) { transition-delay: 0.5s; opacity: 1; transform: translateX(0); }
+  .scene.active .h-chart-row:nth-child(2) { transition-delay: 0.7s; opacity: 1; transform: translateX(0); }
+  .scene.active .h-chart-row:nth-child(3) { transition-delay: 0.9s; opacity: 1; transform: translateX(0); }
+
+  .h-chart-label {
+    width: 140px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .h-chart-track {
+    flex: 1;
+    height: 36px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .h-chart-fill {
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    width: 0%;
+    transition: width 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ── VIKAT BRANDING ── */
+  .brand {
+    position: absolute;
+    top: 28px;
+    left: 32px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--bg-deep);
+  }
+  .brand-name {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+  .brand-name span { color: var(--accent-cyan); }
+
+  /* ── SOURCE TAG ── */
+  .source-tag {
+    position: absolute;
+    top: 32px;
+    right: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    z-index: 100;
+  }
+
+  /* ── SCENE COUNTER ── */
+  .scene-counter {
+    position: absolute;
+    bottom: 32px;
+    left: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    z-index: 100;
+  }
+  .scene-counter .current { color: var(--accent-cyan); font-weight: 600; }
+
+  /* ── CTA BUTTON ── */
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 32px;
+    padding: 14px 32px;
+    border-radius: 50px;
+    border: 1px solid var(--accent-cyan);
+    background: rgba(0,229,255,0.08);
+    color: var(--accent-cyan);
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease 1.2s, transform 0.6s ease 1.2s, background 0.3s, box-shadow 0.3s;
+  }
+  .scene.active .cta-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .cta-btn:hover {
+    background: rgba(0,229,255,0.18);
+    box-shadow: var(--glow-cyan);
+  }
+  .cta-arrow { font-size: 18px; }
+
+  /* ── VS BLOCK ── */
+  .vs-block {
+    display: flex;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+  }
+  .vs-side {
+    flex: 1;
+    min-width: 260px;
+    max-width: 360px;
+    padding: 28px;
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+  .scene.active .vs-side:nth-child(1) { transition-delay: 0.6s; opacity: 1; transform: translateY(0); }
+  .scene.active .vs-side:nth-child(2) { transition-delay: 0.7s; opacity: 1; transform: translateY(0); }
+  .scene.active .vs-side:nth-child(3) { transition-delay: 0.9s; opacity: 1; transform: translateY(0); }
+  .vs-side.red-side { border: 1px solid rgba(255,61,90,0.2); background: rgba(255,61,90,0.04); }
+  .vs-side.green-side { border: 1px solid rgba(0,230,118,0.2); background: rgba(0,230,118,0.04); }
+  .vs-side.amber-side { border: 1px solid rgba(255,171,0,0.2); background: rgba(255,171,0,0.04); }
+  .vs-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .vs-items {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <!-- BG GRID -->
+  <div class="grid-bg"></div>
+
+  <!-- PARTICLES -->
+  <div id="particles"></div>
+
+  <!-- BRANDING -->
+  <div class="brand">
+    <div class="brand-logo">V</div>
+    <div class="brand-name">Vikat<span>.AI</span></div>
+  </div>
+
+  <div class="source-tag">SOURCES: MIT · IBM · DARKTRACE · DELOITTE · PALO ALTO · GARTNER · EY</div>
+
+  <!-- SCENE 1: TITLE -->
+  <div class="scene active" data-scene="0">
+    <div class="scene-tag">Research Briefing · 2026</div>
+    <div class="headline">
+      Why <span class="hl-red">95%</span> of Enterprise AI<br>Cybersecurity Projects<br><span class="hl-accent">Never Scale Past Pilot</span>
+    </div>
+    <div class="subtext">
+      Enterprises are spending more than ever on AI-driven security.<br>
+      Confidence is going down, not up. Here's what the data says.
+    </div>
+  </div>
+
+  <!-- SCENE 2: THE GAP -->
+  <div class="scene" data-scene="1">
+    <div class="scene-tag">The Paradox</div>
+    <div class="headline">
+      Spending <span class="hl-green">&#8593; 90%</span> increased budgets<br>
+      Confidence <span class="hl-red">&#8595; 29%</span> feel less secure
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-red)">95%</div>
+        <div class="label">AI pilots fail to<br>deliver ROI — MIT</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-amber)">25%</div>
+        <div class="label">AI initiatives hit<br>expected ROI — IBM</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-cyan)">16%</div>
+        <div class="label">Have scaled<br>enterprise-wide — IBM</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-purple)">7%</div>
+        <div class="label">Satisfied with their<br>AI security approach</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: GOVERNANCE GAP -->
+  <div class="scene" data-scene="2">
+    <div class="scene-tag">Barrier #1 · Governance Lag</div>
+    <div class="headline">
+      <span class="hl-amber">77%</span> run AI in their stack<br>
+      Only <span class="hl-red">37%</span> have a formal policy
+    </div>
+    <div class="h-chart">
+      <div class="h-chart-row">
+        <div class="h-chart-label">Using Gen AI</div>
+        <div class="h-chart-track">
+          <div class="h-chart-fill" data-width="77" style="background: linear-gradient(90deg, rgba(0,229,255,0.3), rgba(0,229,255,0.6));">77%</div>
+        </div>
+      </div>
+      <div class="h-chart-row">
+        <div class="h-chart-label">Formal AI Policy</div>
+        <div class="h-chart-track">
+          <div class="h-chart-fill" data-width="37" style="background: linear-gradient(90deg, rgba(255,61,90,0.3), rgba(255,61,90,0.6));">37%</div>
+        </div>
+      </div>
+      <div class="h-chart-row">
+        <div class="h-chart-label">Advanced AI Security</div>
+        <div class="h-chart-track">
+          <div class="h-chart-fill" data-width="6" style="background: linear-gradient(90deg, rgba(255,61,90,0.4), rgba(255,61,90,0.8));">6%</div>
+        </div>
+      </div>
+    </div>
+    <div class="subtext" style="margin-top:20px;">
+      63% can't enforce purpose limitations on AI agents.<br>
+      60% can't terminate misbehaving agents quickly.
+    </div>
+  </div>
+
+  <!-- SCENE 4: TOP 5 BARRIERS -->
+  <div class="scene" data-scene="3">
+    <div class="scene-tag">The Five Barriers</div>
+    <div class="headline" style="font-size:clamp(22px,3vw,40px);">
+      Why AI Cybersecurity Projects <span class="hl-red">Stall</span>
+    </div>
+    <div class="barrier-list">
+      <div class="barrier-item">
+        <div class="barrier-rank" style="background:rgba(255,61,90,0.15);color:var(--accent-red);">#1</div>
+        <div class="barrier-bar-track">
+          <div class="barrier-bar-fill" data-width="85" style="background:linear-gradient(90deg,rgba(255,61,90,0.2),rgba(255,61,90,0.4));">
+            Business pressure outpaces security
+            <span class="barrier-pct" style="color:var(--accent-red);">34%</span>
+          </div>
+        </div>
+      </div>
+      <div class="barrier-item">
+        <div class="barrier-rank" style="background:rgba(255,171,0,0.15);color:var(--accent-amber);">#2</div>
+        <div class="barrier-bar-track">
+          <div class="barrier-bar-fill" data-width="70" style="background:linear-gradient(90deg,rgba(255,171,0,0.2),rgba(255,171,0,0.4));">
+            AI security skills gap
+            <span class="barrier-pct" style="color:var(--accent-amber);">25%</span>
+          </div>
+        </div>
+      </div>
+      <div class="barrier-item">
+        <div class="barrier-rank" style="background:rgba(179,136,255,0.15);color:var(--accent-purple);">#3</div>
+        <div class="barrier-bar-track">
+          <div class="barrier-bar-fill" data-width="58" style="background:linear-gradient(90deg,rgba(179,136,255,0.2),rgba(179,136,255,0.4));">
+            Legacy tools can't read AI threats
+            <span class="barrier-pct" style="color:var(--accent-purple);">21%</span>
+          </div>
+        </div>
+      </div>
+      <div class="barrier-item">
+        <div class="barrier-rank" style="background:rgba(0,229,255,0.15);color:var(--accent-cyan);">#4</div>
+        <div class="barrier-bar-track">
+          <div class="barrier-bar-fill" data-width="46" style="background:linear-gradient(90deg,rgba(0,229,255,0.2),rgba(0,229,255,0.4));">
+            Budget misallocation
+            <span class="barrier-pct" style="color:var(--accent-cyan);">14%</span>
+          </div>
+        </div>
+      </div>
+      <div class="barrier-item">
+        <div class="barrier-rank" style="background:rgba(0,230,118,0.15);color:var(--accent-green);">#5</div>
+        <div class="barrier-bar-track">
+          <div class="barrier-bar-fill" data-width="40" style="background:linear-gradient(90deg,rgba(0,230,118,0.2),rgba(0,230,118,0.4));">
+            Data readiness & quality
+            <span class="barrier-pct" style="color:var(--accent-green);">43% cite</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 5: PERCEPTION GAP -->
+  <div class="scene" data-scene="4">
+    <div class="scene-tag">The Perception Gap</div>
+    <div class="headline" style="font-size:clamp(22px,3.5vw,48px);">
+      CISOs say <span class="hl-green">56%</span> positive.<br>
+      Practitioners say <span class="hl-red">25%</span>.
+    </div>
+    <div class="subtext">
+      The people buying AI tools and the people using them<br>
+      live in different realities. Vendor marketing fills the gap.
+    </div>
+    <div class="vs-block">
+      <div class="vs-side red-side">
+        <div class="vs-title" style="color:var(--accent-red);">What Fails</div>
+        <div class="vs-items">
+          Internal builds (&#8531; success rate)<br>
+          Tool stacking without integration<br>
+          Logging without containment<br>
+          Hope-based agent governance
+        </div>
+      </div>
+      <div class="vs-side green-side">
+        <div class="vs-title" style="color:var(--accent-green);">What Works</div>
+        <div class="vs-items">
+          Vendor partnerships (67% success)<br>
+          Platform consolidation (93% prefer)<br>
+          Governance before deployment<br>
+          Managed SOC services (85% prefer)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: AGENT RISK -->
+  <div class="scene" data-scene="5">
+    <div class="scene-tag">The Blind Spot</div>
+    <div class="headline" style="font-size:clamp(22px,3.5vw,48px);">
+      <span class="hl-red">92%</span> have no policy for<br>AI agent protocols (MCP)
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-red)">61%</div>
+        <div class="label">Rate non-human identity<br>governance as weak</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-amber)">82:1</div>
+        <div class="label">Machine identities per<br>human employee</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--accent-red)">37%</div>
+        <div class="label">Had AI agent-caused<br>operational issues</div>
+      </div>
+    </div>
+    <div class="subtext" style="margin-top:16px;">
+      Every new agent creates service accounts and API keys that<br>
+      traditional identity governance was never designed to handle.
+    </div>
+  </div>
+
+  <!-- SCENE 7: CTA -->
+  <div class="scene" data-scene="6">
+    <div class="scene-tag">The Path Forward</div>
+    <div class="headline" style="font-size:clamp(24px,3.5vw,52px);">
+      Secure the AI Layer.<br>
+      <span class="hl-accent">Before It Secures Itself.</span>
+    </div>
+    <div class="subtext">
+      Vikat.AI delivers enterprise agentic AI security — governance,<br>
+      agent runtime controls, and MCP server protection from day one.
+    </div>
+    <div class="vs-block">
+      <div class="vs-side" style="border:1px solid rgba(0,229,255,0.2);background:rgba(0,229,255,0.04);">
+        <div class="vs-title" style="color:var(--accent-cyan);">VShield</div>
+        <div class="vs-items">Runtime agent security<br>& containment controls</div>
+      </div>
+      <div class="vs-side" style="border:1px solid rgba(179,136,255,0.2);background:rgba(179,136,255,0.04);">
+        <div class="vs-title" style="color:var(--accent-purple);">VCommand</div>
+        <div class="vs-items">AI governance &<br>policy enforcement</div>
+      </div>
+      <div class="vs-side amber-side">
+        <div class="vs-title" style="color:var(--accent-amber);">VSentinel</div>
+        <div class="vs-items">MCP server security<br>& identity governance</div>
+      </div>
+    </div>
+    <a class="cta-btn" href="#">
+      Explore Vikat.AI Solutions <span class="cta-arrow">&#8594;</span>
+    </a>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+  <!-- MARKERS -->
+  <div class="scene-markers" id="markers"></div>
+
+  <!-- COUNTER -->
+  <div class="scene-counter">
+    <span class="current" id="counterCurrent">01</span> / <span id="counterTotal">07</span>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="ctrl-btn" id="prevBtn" title="Previous">&#9666;</button>
+    <button class="ctrl-btn playing" id="playBtn" title="Play/Pause">&#10074;&#10074;</button>
+    <button class="ctrl-btn" id="nextBtn" title="Next">&#9656;</button>
+  </div>
+</div>
+
+<script>
+  // ── PARTICLES ──
+  var particlesEl = document.getElementById('particles');
+  for (var i = 0; i < 20; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+    p.style.animationDelay = (Math.random() * 12) + 's';
+    p.style.animationDuration = (8 + Math.random() * 8) + 's';
+    particlesEl.appendChild(p);
+  }
+
+  // ── SCENES ──
+  var scenes = document.querySelectorAll('.scene');
+  var totalScenes = scenes.length;
+  var current = 0;
+  var playing = true;
+  var timer = null;
+  var SCENE_DURATION = 7000;
+
+  // ── MARKERS ──
+  var markersEl = document.getElementById('markers');
+  for (var i = 0; i < totalScenes; i++) {
+    var m = document.createElement('div');
+    m.className = 'marker' + (i === 0 ? ' active' : '');
+    m.setAttribute('data-idx', i);
+    m.addEventListener('click', function() { goTo(parseInt(this.getAttribute('data-idx'))); });
+    markersEl.appendChild(m);
+  }
+
+  function goTo(idx) {
+    scenes[current].classList.remove('active');
+    document.querySelectorAll('.marker')[current].classList.remove('active');
+    current = idx;
+    scenes[current].classList.add('active');
+    document.querySelectorAll('.marker')[current].classList.add('active');
+    document.getElementById('counterCurrent').textContent = String(current + 1).padStart(2, '0');
+    animateBars();
+    resetTimer();
+  }
+
+  function next() { goTo((current + 1) % totalScenes); }
+  function prev() { goTo((current - 1 + totalScenes) % totalScenes); }
+
+  function resetTimer() {
+    clearInterval(timer);
+    if (playing) timer = setInterval(next, SCENE_DURATION);
+  }
+
+  // ── ANIMATE BARS ──
+  function animateBars() {
+    var activeScene = scenes[current];
+    activeScene.querySelectorAll('.h-chart-fill').forEach(function(el) {
+      el.style.width = '0%';
+      setTimeout(function() { el.style.width = el.dataset.width + '%'; }, 600);
+    });
+    activeScene.querySelectorAll('.barrier-bar-fill').forEach(function(el) {
+      el.style.width = '0%';
+      setTimeout(function() { el.style.width = el.dataset.width + '%'; }, 600);
+    });
+  }
+
+  // ── PROGRESS BAR ──
+  var progressStart = Date.now();
+  function updateProgress() {
+    if (playing) {
+      var elapsed = Date.now() - progressStart;
+      var sceneProgress = (elapsed % SCENE_DURATION) / SCENE_DURATION;
+      var totalProgress = ((current + sceneProgress) / totalScenes) * 100;
+      document.getElementById('progressBar').style.width = totalProgress + '%';
+    }
+    requestAnimationFrame(updateProgress);
+  }
+
+  // ── CONTROLS ──
+  document.getElementById('playBtn').addEventListener('click', function() {
+    playing = !playing;
+    var btn = document.getElementById('playBtn');
+    btn.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+    btn.classList.toggle('playing', playing);
+    if (playing) { progressStart = Date.now(); resetTimer(); }
+    else clearInterval(timer);
+  });
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  // ── KEYBOARD ──
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight') next();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('playBtn').click(); }
+  });
+
+  // ── INIT ──
+  timer = setInterval(next, SCENE_DURATION);
+  progressStart = Date.now();
+  updateProgress();
+  animateBars();
+</script>
+
+</body>
+</html>
